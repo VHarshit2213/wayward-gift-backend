@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 
 
 export async function createProduct(
-    { name, description, price, discount_price, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
+    { name, description, price, size, discount_price, includes, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
     files,
     req
 ) {
@@ -37,6 +37,8 @@ export async function createProduct(
         discount_price,
         category: categoryId,
         sku,
+        includes: includes || [],
+        size: size || [],
         stock_quantity: stock_quantity || 0,
         status: status || "active",
         weight,
@@ -115,6 +117,8 @@ export async function updateProduct(productId, updates, files, req) {
         "dimensions",
         "color",
         "material",
+        "includes",
+        "size",
     ];
     fields.forEach((field) => {
         if (updates[field] !== undefined) product[field] = updates[field];
@@ -154,10 +158,25 @@ export async function deleteProduct(productId,userId) {
 
 
 // services/product.service.js
-export async function getAllProducts({ categoryId, page = 1, limit = 10, search }, req) {
+export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock }, req) {
   const filter = {};
-  if (categoryId) filter.category = categoryId;
+
+  // FILTER BY MULTIPLE OR SINGLE CATEGORY
+  if (categoryId) {
+    const categories = Array.isArray(categoryId) ? categoryId : categoryId.split(",");
+    filter.category = { $in: categories };
+  }
+
+  // SEARCH BY NAME
   if (search) filter.name = { $regex: search, $options: "i" };
+
+  // 3-STATE IN STOCK FILTER
+  if (inStock === "true") {
+    filter.stock_quantity = { $gt: 0 };
+  } else if (inStock === "false") {
+    filter.stock_quantity = 0;
+  }
+  // If inStock is undefined → no filter applied
 
   const skip = (page - 1) * limit;
 
@@ -179,9 +198,9 @@ export async function getAllProducts({ categoryId, page = 1, limit = 10, search 
       $group: {
         _id: "$product_id",
         totalReviews: { $sum: 1 },
-        averageStar: { $avg: "$star" }, // no need $toDouble since star is Number
-      },
-    },
+        averageStar: { $avg: "$star" }
+      }
+    }
   ]);
 
   const statsMap = {};
@@ -217,6 +236,3 @@ export async function getAllProducts({ categoryId, page = 1, limit = 10, search 
     },
   };
 }
-
-
-

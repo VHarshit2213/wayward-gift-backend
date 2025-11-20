@@ -15,6 +15,8 @@ const ProductSchema = new mongoose.Schema(
     dimensions: { type: String }, // e.g. "10x15 cm"
     color: { type: String },
     material: { type: String },
+    size: { type: [String] },
+    includes : { type: [String] },
     images: [{ type: String, required: true }],
   },
   { timestamps: true, versionKey: false }

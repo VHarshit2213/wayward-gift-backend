@@ -4,16 +4,14 @@ import mongoose from "mongoose";
 
 // Create Review
 export async function createReview({ product_id, user_id, star, description,name }, req) {
-  if (!product_id || !user_id || !star) {
-    throw new Error("Product, User, and Star rating are required");
+  if ( !user_id || !star) {
+    throw new Error("User and Star rating are required");
   }
 
-  if (!mongoose.Types.ObjectId.isValid(product_id))
-    throw new Error("Invalid product ID");
-  const images = req.files?.["images"] || [];
+   const images = req.files?.["images"] || [];
 
   const review = await Review.create({
-    product_id,
+    product_id: product_id || null,
     user_id,
     name,
     star,
