@@ -57,7 +57,7 @@ import User from "../models/User.js";
   );
 
   const totalAmount = enrichedProducts.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + item.discount_price * item.quantity,
     0
   );
 

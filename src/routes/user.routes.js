@@ -26,4 +26,5 @@ router.put(
   asyncHandler(userController.updateProfilePicture)
 );
 
+router.get("/all", authenticate, asyncHandler(userController.getAllUsers));
 export default router;

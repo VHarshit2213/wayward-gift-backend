@@ -27,3 +27,12 @@ export const updateProfilePicture = async (req, res) => {
     return ApiResponse.error(res, err.message, err.status || 500);
   }
 };
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const result = await userService.getAllUsers(req.user._id, req);
+    return ApiResponse.ok(res, result, "Users fetched successfully");
+  } catch (err) {
+    return ApiResponse.error(res, err.message, err.status || 500);
+  }
+};

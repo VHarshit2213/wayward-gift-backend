@@ -7,6 +7,7 @@ import cartRoutes from './cart.route.js';
 import orderRoutes from './order.routes.js';
 import stripeRoutes from './stripe.routes.js';
 import userRoutes from './user.routes.js';
+import customOption from './customOption.route.js';
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -17,6 +18,7 @@ router.use('/cart', cartRoutes);
 router.use('/order', orderRoutes);
 router.use('/stripe', stripeRoutes);
 router.use('/user', userRoutes);
+router.use('/custom', customOption);
 
 router.get('/health', (req, res) => {
   res.json({ ok: true, uptime: process.uptime() });

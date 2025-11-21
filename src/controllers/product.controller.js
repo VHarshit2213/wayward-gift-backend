@@ -53,3 +53,13 @@ export const getAllProducts = async (req, res) => {
     return ApiResponse.error(res, err.message, err.status || 500);
   }
 };
+
+
+export const createUserCustomProduct = async (req, res) => {
+  try {
+    const result = await productService.createUserCustomProduct(req.body);
+    return ApiResponse.ok(res, result, "Custom product created");
+  } catch (err) {
+    return ApiResponse.error(res, err.message);
+  }
+};

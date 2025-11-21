@@ -124,7 +124,7 @@ export async function getUserReviews(userId, req) {
   return result;
 }
 
-export async function getGlobalReviewSummary() {
+export async function getGlobalReviewSummary(req) {
   //  Total Reviews & Average Rating
   const totalReviews = await Review.countDocuments();
   const ratingAggregation = await Review.aggregate([
@@ -158,6 +158,9 @@ export async function getGlobalReviewSummary() {
     _id: r._id,
     star: r.star,
     description: r.description,
+    images: r.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    ),
     name: r.name,
     date: r.date,
     user: { name: r.user_id?.name || "Unknown User" },

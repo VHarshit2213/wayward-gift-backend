@@ -64,7 +64,7 @@ export const getUserReviews = async (req, res) => {
 
 export async function getGlobalReviewSummaryController(req, res) {
   try {
-    const summary = await reviewService.getGlobalReviewSummary();
+    const summary = await reviewService.getGlobalReviewSummary(req);
     return ApiResponse.ok(res, summary, "Global review summary fetched successfully");
   } catch (error) {
     return ApiResponse.error(res, error.message || "Failed to fetch global review summary");

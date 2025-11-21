@@ -7,160 +7,160 @@ import mongoose from "mongoose";
 
 
 export async function createProduct(
-    { name, description, price, size, discount_price, includes, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
-    files,
-    req
+  { name, description, price, size, discount_price, includes, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
+  files,
+  req
 ) {
-    const images = req.files?.["images"];
-    const userId = req.user._id; // from JWT
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
-    if (user.role !== "admin") throw new Error("Only admin can create products");
-    if (!name) throw new Error("Product name is required");
-    if (!price) throw new Error("Product price is required");
-    if (!categoryId) throw new Error("Category ID is required");
-    if (!sku) throw new Error("SKU is required");
-    if (!images || images.length === 0) throw new Error("At least one product image is required");
+  const images = req.files?.["images"];
+  const userId = req.user._id; // from JWT
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") throw new Error("Only admin can create products");
+  if (!name) throw new Error("Product name is required");
+  if (!price) throw new Error("Product price is required");
+  if (!categoryId) throw new Error("Category ID is required");
+  if (!sku) throw new Error("SKU is required");
+  if (!images || images.length === 0) throw new Error("At least one product image is required");
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) throw new Error("Invalid category ID");
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) throw new Error("Invalid category ID");
 
-    const category = await Category.findById(categoryId);
-    if (!category) throw new Error("Category not found");
+  const category = await Category.findById(categoryId);
+  if (!category) throw new Error("Category not found");
 
-    const exists = await Product.findOne({ sku });
-    if (exists) throw new Error("Product already exists with this SKU");
+  const exists = await Product.findOne({ sku });
+  if (exists) throw new Error("Product already exists with this SKU");
 
-    const product = await Product.create({
-        name,
-        description,
-        price,
-        discount_price,
-        category: categoryId,
-        sku,
-        includes: includes || [],
-        size: size || [],
-        stock_quantity: stock_quantity || 0,
-        status: status || "active",
-        weight,
-        dimensions,
-        color,
-        material,
-        images: images.map((img) => img.filename),
-    });
+  const product = await Product.create({
+    name,
+    description,
+    price,
+    discount_price,
+    category: categoryId,
+    sku,
+    includes: includes || [],
+    size: size || [],
+    stock_quantity: stock_quantity || 0,
+    status: status || "active",
+    weight,
+    dimensions,
+    color,
+    material,
+    images: images.map((img) => img.filename),
+  });
 
-    // Attach URLs
-    product.images = product.images.map(
-        (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
-    );
+  // Attach URLs
+  product.images = product.images.map(
+    (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+  );
 
-    return product;
+  return product;
 }
 export async function getProducts(productId, req) {
-    if (productId) {
-        if (!mongoose.Types.ObjectId.isValid(productId))
-            throw new Error("Please provide valid product id");
+  if (productId) {
+    if (!mongoose.Types.ObjectId.isValid(productId))
+      throw new Error("Please provide valid product id");
 
-        const product = await Product.findById(productId).populate("category");
-        if (!product) throw new Error("Product not found");
+    const product = await Product.findById(productId).populate("category").populate("customSelection.theme").populate("customSelection.size").populate("customSelection.coffee_roast").populate("customSelection.addons");
+    if (!product) throw new Error("Product not found");
 
-        product.images = product.images.map(
-            (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
-        );
+    product.images = product.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    );
 
-        const reviews = await Review.find({ product_id: productId }).lean();
+    const reviews = await Review.find({ product_id: productId }).lean();
 
-        let avgStar = 0;
-        if (reviews.length > 0) {
-            avgStar = reviews.reduce((sum, r) => sum + Number(r.star), 0) / reviews.length;
-        }
-
-        return {
-            ...product.toObject(),
-            reviews,
-            totalReviews: reviews.length,
-            averageStar: avgStar.toFixed(1),
-        };
+    let avgStar = 0;
+    if (reviews.length > 0) {
+      avgStar = reviews.reduce((sum, r) => sum + Number(r.star), 0) / reviews.length;
     }
+
+    return {
+      ...product.toObject(),
+      reviews,
+      totalReviews: reviews.length,
+      averageStar: avgStar.toFixed(1),
+    };
+  }
 }
 
 
 export async function updateProduct(productId, updates, files, req) {
-    if (!mongoose.Types.ObjectId.isValid(productId))
-        throw new Error("Invalid product ID");
-    const userId = req.user._id; // from JWT
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
-    if (user.role !== "admin") throw new Error("Only admin can update products");
-    const product = await Product.findById(productId);
-    if (!product) throw new Error("Product not found");
+  if (!mongoose.Types.ObjectId.isValid(productId))
+    throw new Error("Invalid product ID");
+  const userId = req.user._id; // from JWT
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") throw new Error("Only admin can update products");
+  const product = await Product.findById(productId);
+  if (!product) throw new Error("Product not found");
 
-    // Handle category change
-    if (updates.categoryId) {
-        if (!mongoose.Types.ObjectId.isValid(updates.categoryId)) {
-            throw new Error("Invalid category ID");
-        }
-        const category = await Category.findById(updates.categoryId);
-        if (!category) throw new Error("Category not found");
-        product.category = updates.categoryId;
+  // Handle category change
+  if (updates.categoryId) {
+    if (!mongoose.Types.ObjectId.isValid(updates.categoryId)) {
+      throw new Error("Invalid category ID");
     }
+    const category = await Category.findById(updates.categoryId);
+    if (!category) throw new Error("Category not found");
+    product.category = updates.categoryId;
+  }
 
-    // Update fields if provided
-    const fields = [
-        "name",
-        "description",
-        "price",
-        "discount_price",
-        "sku",
-        "stock_quantity",
-        "status",
-        "weight",
-        "dimensions",
-        "color",
-        "material",
-        "includes",
-        "size",
-    ];
-    fields.forEach((field) => {
-        if (updates[field] !== undefined) product[field] = updates[field];
-    });
+  // Update fields if provided
+  const fields = [
+    "name",
+    "description",
+    "price",
+    "discount_price",
+    "sku",
+    "stock_quantity",
+    "status",
+    "weight",
+    "dimensions",
+    "color",
+    "material",
+    "includes",
+    "size",
+  ];
+  fields.forEach((field) => {
+    if (updates[field] !== undefined) product[field] = updates[field];
+  });
 
-    // Replace images if new ones uploaded
-    const images = files?.["images"];
-    if (images && images.length > 0) {
-        product.images = images.map((img) => img.filename);
-    }
+  // Replace images if new ones uploaded
+  const images = files?.["images"];
+  if (images && images.length > 0) {
+    product.images = images.map((img) => img.filename);
+  }
 
-    await product.save();
+  await product.save();
 
-    product.images = product.images.map(
-        (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
-    );
+  product.images = product.images.map(
+    (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+  );
 
-    return product;
+  return product;
 }
 
 
 
-export async function deleteProduct(productId,userId) {
-    if (!mongoose.Types.ObjectId.isValid(productId))
-        throw new Error("Invalid product ID");
+export async function deleteProduct(productId, userId) {
+  if (!mongoose.Types.ObjectId.isValid(productId))
+    throw new Error("Invalid product ID");
 
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
-    if (user.role !== "admin") throw new Error("Only admin can update products");
-    const product = await Product.findById(productId);
-    if (!product) throw new Error("Product not found");
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") throw new Error("Only admin can update products");
+  const product = await Product.findById(productId);
+  if (!product) throw new Error("Product not found");
 
-    await Product.findByIdAndDelete(productId);
+  await Product.findByIdAndDelete(productId);
 
-    return { message: "Product deleted successfully" };
+  return { message: "Product deleted successfully" };
 }
 
 
 // services/product.service.js
 export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock }, req) {
   const filter = {};
-
+  filter.isCustom = { $ne: true };
   // FILTER BY MULTIPLE OR SINGLE CATEGORY
   if (categoryId) {
     const categories = Array.isArray(categoryId) ? categoryId : categoryId.split(",");
@@ -236,3 +236,17 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
     },
   };
 }
+
+
+export const createUserCustomProduct = async (data) => {
+  console.log("Creating custom product with data:", data);
+  return await Product.create({
+    name: "Customized Basket",
+    message: data.message || "",
+    discount_price: data.finalPrice,
+    sku: "CUST-" + Date.now(),
+    stock_quantity: 1,
+    isCustom: true,
+    customSelection: data.selectedOptions
+  });
+};
