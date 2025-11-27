@@ -67,8 +67,16 @@ export async function getProducts(productId, req) {
       (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
     );
 
-    const reviews = await Review.find({ product_id: productId }).lean();
+    const reviews = await (await Review.find({ product_id: productId }).populate("user_id", "name profilePicture"));
 
+    reviews.forEach((review) => {
+      review.images = review.images.map(
+        (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+      );
+      review.user_id.profilePicture = review.user_id.profilePicture
+        ? `${req.protocol}://${req.get("host")}/uploads/${review.user_id.profilePicture}`
+        : null;
+    });
     let avgStar = 0;
     if (reviews.length > 0) {
       avgStar = reviews.reduce((sum, r) => sum + Number(r.star), 0) / reviews.length;
