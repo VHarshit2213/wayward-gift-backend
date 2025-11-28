@@ -21,6 +21,12 @@ import User from "../models/User.js";
 
   // Place Order
 export async function placeOrder(userId, body) {
+  console.log("[order] placeOrder called", {
+    userId: userId?.toString?.(),
+    payment_method: body?.payment_method,
+    discount_amount: body?.discount_amount,
+  });
+
   const user = await User.findById(userId).lean();
   const cart_data = await Cart.findOne({ user_id: userId }).lean();
 
@@ -29,6 +35,8 @@ export async function placeOrder(userId, body) {
   }
 
   const orderId = await generateOrderId();
+
+  console.log("[order] cart products raw", cart_data.products);
 
   // Fetch products and manage stock
   const enrichedProducts = await Promise.all(
@@ -44,8 +52,17 @@ export async function placeOrder(userId, body) {
         throw new Error(`Insufficient stock for product: ${product.name}`);
       }
 
-      const price = Number(product.discount_price ?? product.price ?? 0);
-      const quantity = Number(item.quantity ?? 0);
+      const normalizeNumber = (val) => {
+        if (val === null || val === undefined) return NaN;
+        if (typeof val === "string") {
+          // Remove commas or currency symbols that may have slipped into DB
+          return Number(val.replace(/[,$]/g, "").trim());
+        }
+        return Number(val);
+      };
+
+      const price = normalizeNumber(product.discount_price ?? product.price ?? 0);
+      const quantity = normalizeNumber(item.quantity ?? 0);
 
       if (!Number.isFinite(price) || price < 0) {
         throw new Error(`Invalid price for product: ${product.name || product._id}`);
@@ -54,6 +71,15 @@ export async function placeOrder(userId, body) {
       if (!Number.isFinite(quantity) || quantity <= 0) {
         throw new Error(`Invalid quantity for product: ${product.name || product._id}`);
       }
+
+      console.log("[order] product normalized", {
+        product_id: product._id?.toString?.(),
+        name: product.name,
+        raw_price: { discount_price: product.discount_price, price: product.price },
+        normalized_price: price,
+        raw_quantity: item.quantity,
+        normalized_quantity: quantity,
+      });
 
       // Deduct stock
       product.stock_quantity -= quantity;
@@ -73,7 +99,14 @@ export async function placeOrder(userId, body) {
   );
 
   if (!Number.isFinite(totalAmount)) {
-    throw new Error("Calculated order total is invalid");
+    const debugItems = enrichedProducts.map((p) => ({
+      product: p.product_id?.toString?.() || "unknown",
+      price: p.price,
+      quantity: p.quantity,
+      subtotal: p.price * p.quantity,
+    }));
+    console.error("[order] invalid totalAmount", { debugItems });
+    throw new Error(`Calculated order total is invalid: ${JSON.stringify(debugItems)}`);
   }
 
   const newOrder = new Order({
