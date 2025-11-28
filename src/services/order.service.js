@@ -93,22 +93,36 @@ export async function placeOrder(userId, body) {
     })
   );
 
-  const totalAmount = enrichedProducts.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // Compute total with explicit validation per line item
+  let totalAmount = 0;
+  const breakdown = [];
+  for (const p of enrichedProducts) {
+    const priceNum = Number(p.price);
+    const qtyNum = Number(p.quantity);
+    const lineTotal = priceNum * qtyNum;
 
-  console.log("[order] totalAmount computed", totalAmount);
-
-  if (!Number.isFinite(totalAmount)) {
-    const debugItems = enrichedProducts.map((p) => ({
+    breakdown.push({
       product: p.product_id?.toString?.() || "unknown",
       price: p.price,
       quantity: p.quantity,
-      subtotal: p.price * p.quantity,
-    }));
-    console.error("[order] invalid totalAmount", { totalAmount, debugItems });
-    throw new Error(`Calculated order total is invalid: ${JSON.stringify({ totalAmount, debugItems })}`);
+      lineTotal,
+      priceType: typeof p.price,
+      quantityType: typeof p.quantity,
+    });
+
+    if (!Number.isFinite(lineTotal)) {
+      console.error("[order] invalid line total", breakdown[breakdown.length - 1]);
+      throw new Error(`Invalid line total for product ${breakdown[breakdown.length - 1].product}`);
+    }
+
+    totalAmount += lineTotal;
+  }
+
+  console.log("[order] totalAmount computed", totalAmount, { breakdown });
+
+  if (!Number.isFinite(totalAmount)) {
+    console.error("[order] invalid totalAmount", { totalAmount, breakdown });
+    throw new Error(`Calculated order total is invalid: ${JSON.stringify({ totalAmount, breakdown })}`);
   }
 
   const newOrder = new Order({
