@@ -4,10 +4,19 @@ dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function createPaymentIntentService({ amount, name, email, address }) {
+  console.log("[stripe] createPaymentIntentService called", {
+    raw_amount: amount,
+    amount_type: typeof amount,
+    name,
+    email,
+  });
+
   const normalizedAmount = Number(amount);
   if (!Number.isFinite(normalizedAmount) || !Number.isInteger(normalizedAmount) || normalizedAmount <= 0) {
     throw new Error("Invalid amount supplied for PaymentIntent");
   }
+
+  console.log("[stripe] normalized amount", normalizedAmount);
 
   // Create customer
   const customer = await stripe.customers.create({
