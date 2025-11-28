@@ -15,7 +15,7 @@ export const getAllOrders = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(process.env.PAGE_LIMIT) || 20;
     const userId=req.user._id;
-    const data = await OrderService.getAllOrders(page, limit, req.query.order_status,userId);
+    const data = await OrderService.getAllOrders(page, limit, req.query.order_status,userId, req);
     return ApiResponse.ok(res, "Orders fetched successfully", data);
   } catch (error) {
     return ApiResponse.error(res, error.message);
@@ -24,7 +24,7 @@ export const getAllOrders = async (req, res) => {
 
 export const getOrderById = async (req, res) => {
   try {
-    const data = await OrderService.getOrderById(req.params.orderId);
+    const data = await OrderService.getOrderById(req, req.params.orderId);
     return ApiResponse.ok(res, "Order fetched successfully", data);
   } catch (error) {
     return ApiResponse.error(res, error.message);
@@ -48,7 +48,7 @@ export const getUserOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(process.env.PAGE_LIMIT) || 20;
-    const data = await OrderService.getUserOrders(req.user._id, page, limit, req.query.order_status);
+    const data = await OrderService.getUserOrders(req, req.user._id, page, limit, req.query.order_status);
     return ApiResponse.ok(res, "User orders fetched successfully", data);
   } catch (error) {
     console.error("Error fetching user orders:", error);

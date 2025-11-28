@@ -4,22 +4,22 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 
 
-  // Generate next order ID (WAYWARD001…)
-  export async function generateOrderId() {
-    const lastOrder = await Order.find({ order_id: { $regex: /^WAYWARD\d{3}$/ } })
-      .sort({ order_id: -1 })
-      .limit(1)
-      .lean();
+// Generate next order ID (WAYWARD001…)
+export async function generateOrderId() {
+  const lastOrder = await Order.find({ order_id: { $regex: /^WAYWARD\d{3}$/ } })
+    .sort({ order_id: -1 })
+    .limit(1)
+    .lean();
 
-    let orderNumber = 1;
-    if (lastOrder.length > 0) {
-      const lastOrderNum = parseInt(lastOrder[0].order_id.replace("WAYWARD", ""), 10);
-      if (!isNaN(lastOrderNum)) orderNumber = lastOrderNum + 1;
-    }
-    return `WAYWARD${String(orderNumber).padStart(3, "0")}`;
+  let orderNumber = 1;
+  if (lastOrder.length > 0) {
+    const lastOrderNum = parseInt(lastOrder[0].order_id.replace("WAYWARD", ""), 10);
+    if (!isNaN(lastOrderNum)) orderNumber = lastOrderNum + 1;
   }
+  return `WAYWARD${String(orderNumber).padStart(3, "0")}`;
+}
 
-  // Place Order
+// Place Order
 export async function placeOrder(userId, body) {
   console.log("[order] placeOrder called", {
     userId: userId?.toString?.(),
@@ -145,129 +145,161 @@ export async function placeOrder(userId, body) {
   return savedOrder;
 }
 
-  // Get all orders with pagination
-  export async function getAllOrders(page, limit, orderStatus,userId) {
-    const filter = {};
-    if (orderStatus) filter.order_status = orderStatus;
+function addFullImagePaths(product, req) {
+  if (product?.images && Array.isArray(product.images)) {
+    product.images = product.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    );
+  }
+  return product;
+}
 
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
-    if (user.role !== "admin") {
-        throw new Error("Only admin can access all orders");
+
+// Get all orders with pagination
+export async function getAllOrders(page, limit, orderStatus, userId, req) {
+  const filter = {};
+  if (orderStatus) filter.order_status = orderStatus;
+
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") {
+    throw new Error("Only admin can access all orders");
+  }
+  if (page > 1) {
+    const previousOrders = await Order.find(filter)
+      .sort({ _id: -1 })
+      .limit((page - 1) * limit);
+    const lastOrder = previousOrders[previousOrders.length - 1];
+    if (lastOrder) {
+      filter._id = { $lt: lastOrder._id };
     }
-    if (page > 1) {
-      const previousOrders = await Order.find(filter)
-        .sort({ _id: -1 })
-        .limit((page - 1) * limit);
-      const lastOrder = previousOrders[previousOrders.length - 1];
-      if (lastOrder) {
-        filter._id = { $lt: lastOrder._id };
+  }
+
+  const orders = await Order.find(filter)
+    .sort({ _id: -1 })
+    .limit(limit)
+    .lean();
+
+  const enrichedOrders = await Promise.all(
+    orders.map(async (order) => {
+      const enrichedProducts = await Promise.all(
+        order.products.map(async (item) => {
+          const itemData = { ...item };
+          const product = await Product.findById(item.product_id).lean();
+          if (product) {
+            addFullImagePaths(product, req); // ⭐ Add full URLs
+            return { ...itemData, ...product };
+          }
+          return product
+            ? { ...itemData, ...product }
+            : itemData;
+        })
+      );
+      return { ...order, Product: enrichedProducts };
+    })
+  );
+
+  const totalOrders = await Order.countDocuments(orderStatus ? { order_status: orderStatus } : {});
+  return {
+    currentPage: page,
+    totalPages: Math.ceil(totalOrders / limit),
+    totalItems: totalOrders,
+    data: enrichedOrders
+  };
+}
+
+// Get single order
+export async function getOrderById(req, orderId) {
+  const order = await Order.findById(orderId).lean();
+  if (!order) throw new Error("Order not found");
+
+  const enrichedProducts = await Promise.all(
+    order.products.map(async (item) => {
+      const itemData = { ...item };
+      const product = await Product.findById(item.product_id).lean();
+
+      if (product) {
+        addFullImagePaths(product, req);
+        return { ...itemData, ...product };
       }
-    }
 
-    const orders = await Order.find(filter)
+      return itemData;
+    })
+  );
+
+  return { ...order, Product: enrichedProducts };
+}
+
+
+// Update status
+export async function updateOrderStatus(orderId, status) {
+  console.log("Updating order:", orderId, "to status:", status);
+  return await Order.findOneAndUpdate(
+    { order_id: orderId },
+    { $set: { order_status: status } },
+    { new: true }
+  );
+}
+
+// User Orders
+export async function getUserOrders(req, userId, page, limit, orderStatus) {
+  let query = { user_id: userId };
+  if (orderStatus) query.order_status = orderStatus;
+
+  if (page > 1) {
+    const previousOrders = await Order.find(query)
       .sort({ _id: -1 })
-      .limit(limit)
-      .lean();
+      .limit((page - 1) * limit);
 
-    const enrichedOrders = await Promise.all(
-      orders.map(async (order) => {
-        const enrichedProducts = await Promise.all(
-          order.products.map(async (item) => {
-            const itemData = { ...item };
-            const product = await Product.findById(item.product_id).lean();
-            return product
-              ? { ...itemData, ...product }
-              : itemData;
-          })
-        );
-        return { ...order, Product: enrichedProducts };
-      })
-    );
-
-    const totalOrders = await Order.countDocuments(orderStatus ? { order_status: orderStatus } : {});
-    return {
-      currentPage: page,
-      totalPages: Math.ceil(totalOrders / limit),
-      totalItems: totalOrders,
-      data: enrichedOrders
-    };
+    const lastOrder = previousOrders[previousOrders.length - 1];
+    if (lastOrder) query._id = { $lt: lastOrder._id };
   }
 
-  // Get single order
-  export async function getOrderById(orderId) {
-    const order = await Order.findById(orderId).lean();
-    if (!order) throw new Error("Order not found");
+  const orders = await Order.find(query)
+    .sort({ _id: -1 })
+    .limit(limit)
+    .lean();
 
-    const enrichedProducts = await Promise.all(
-      order.products.map(async (item) => {
-        const itemData = { ...item };
-        const product = await Product.findById(item.product_id).lean();
-        return product ? { ...itemData, ...product } : itemData;
-      })
-    );
-    return { ...order, Product: enrichedProducts };
-  }
+  const enrichedOrders = await Promise.all(
+    orders.map(async (order) => {
+      const enrichedProducts = await Promise.all(
+        order.products.map(async (item) => {
+          const itemData = { ...item };
+          const product = await Product.findById(item.product_id).lean();
 
-  // Update status
-  export async function updateOrderStatus(orderId, status) {
-    console.log("Updating order:", orderId, "to status:", status);
-    return await Order.findOneAndUpdate(
-      { order_id: orderId },
-      { $set: { order_status: status } },
-      { new: true }
-    );
-  }
+          if (product) {
+            addFullImagePaths(product, req); // ⭐ Add full URLs
+            return { ...itemData, ...product };
+          }
 
-  // User Orders
-  export async function getUserOrders(userId, page, limit, orderStatus) {
-    let query = { user_id: userId };
-    if (orderStatus) query.order_status = orderStatus;
+          return itemData;
+        })
+      );
 
-    if (page > 1) {
-      const previousOrders = await Order.find(query)
-        .sort({ _id: -1 })
-        .limit((page - 1) * limit);
-      const lastOrder = previousOrders[previousOrders.length - 1];
-      if (lastOrder) query._id = { $lt: lastOrder._id };
-    }
+      return { ...order, Product: enrichedProducts };
+    })
+  );
 
-    const orders = await Order.find(query)
-      .sort({ _id: -1 })
-      .limit(limit)
-      .lean();
+  const totalOrders = await Order.countDocuments({ user_id: userId });
 
-    const enrichedOrders = await Promise.all(
-      orders.map(async (order) => {
-        const enrichedProducts = await Promise.all(
-          order.products.map(async (item) => {
-            const itemData = { ...item };
-            const product = await Product.findById(item.product_id).lean();
-            return product ? { ...itemData, ...product } : itemData;
-          })
-        );
-        return { ...order, Product: enrichedProducts };
-      })
-    );
+  return {
+    currentPage: page,
+    totalPages: Math.ceil(totalOrders / limit),
+    totalItems: totalOrders,
+    data: enrichedOrders
+  };
+}
 
-    const totalOrders = await Order.countDocuments({ user_id: userId });
-    return {
-      currentPage: page,
-      totalPages: Math.ceil(totalOrders / limit),
-      totalItems: totalOrders,
-      data: enrichedOrders
-    };
-  }
 
-  // Edit Order
-  export async function editOrder(orderId, updateData) {
-    return await Order.findByIdAndUpdate(orderId, updateData, {
-      new: true,
-      runValidators: true
-    });
-  }
+// Edit Order
+export async function editOrder(orderId, updateData) {
+  return await Order.findByIdAndUpdate(orderId, updateData, {
+    new: true,
+    runValidators: true
+  });
+}
 
-  // Delete Order
-  export async function deleteOrder(orderId) {
-    return await Order.findByIdAndDelete(orderId);
-  }
+// Delete Order
+export async function deleteOrder(orderId) {
+  return await Order.findByIdAndDelete(orderId);
+}

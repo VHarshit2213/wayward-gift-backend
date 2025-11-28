@@ -18,11 +18,45 @@ export async function getUserById(userId, req) {
 }
 
 export async function updateUserDetails(userId, updates) {
-  const allowed = ["name", "email", "mobile"];
+  // Allowed basic fields
+  const allowedBasic = ["name", "email", "mobile"];
+
+  // Allowed address structure
+  const allowedAddressFields = [
+    "streetAddress",
+    "city",
+    "state",
+    "ZIP",
+    "country"
+  ];
+
   const updateData = {};
 
-  for (let key of allowed) {
+  // Handle basic fields
+  for (let key of allowedBasic) {
     if (updates[key] !== undefined) updateData[key] = updates[key];
+  }
+
+  // Handle Shipping Address
+  if (updates.shippingAddress && Array.isArray(updates.shippingAddress)) {
+    updateData.shippingAddress = updates.shippingAddress.map(addr => {
+      let formatted = {};
+      for (let key of allowedAddressFields) {
+        if (addr[key] !== undefined) formatted[key] = addr[key];
+      }
+      return formatted;
+    });
+  }
+
+  // Handle Billing Address
+  if (updates.billingAddress && Array.isArray(updates.billingAddress)) {
+    updateData.billingAddress = updates.billingAddress.map(addr => {
+      let formatted = {};
+      for (let key of allowedAddressFields) {
+        if (addr[key] !== undefined) formatted[key] = addr[key];
+      }
+      return formatted;
+    });
   }
 
   const user = await User.findByIdAndUpdate(
@@ -35,6 +69,7 @@ export async function updateUserDetails(userId, updates) {
 
   return user;
 }
+
 
 export async function updateProfilePicture(userId, files, req) {
   const image = files?.profilePicture?.[0];

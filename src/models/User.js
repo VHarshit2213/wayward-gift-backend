@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ZodIPv4 } from "zod";
 
 const UserSchema = new mongoose.Schema({
 
@@ -11,6 +12,22 @@ const UserSchema = new mongoose.Schema({
   isDeleted: {type: Boolean, default: false},
   isActive: {type: Boolean, default: true},
   googleId: {type: String, default: null},
+  shippingAddress:[
+    {
+    streetAddress: {type: String, required: true},
+    city: {type: String, required: true},
+    state: {type: String, required: true},
+    ZIP: {type: String, required: true},
+    country: {type: String, required: true},
+  }],
+  billingAddress:[
+    {
+    streetAddress: {type: String, required: true},
+    city: {type: String, required: true},
+    state: {type: String, required: true},
+    ZIP: {type: String, required: true},
+    country: {type: String, required: true},
+  }],
 
 }, {
   timestamps: true,
