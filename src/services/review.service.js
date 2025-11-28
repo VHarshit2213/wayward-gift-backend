@@ -3,36 +3,47 @@ import Review from "../models/Review.js";
 import mongoose from "mongoose";
 
 // Create Review
-export async function createReview({ product_id, user_id, star, description }) {
-  if (!product_id || !user_id || !star) {
-    throw new Error("Product, User, and Star rating are required");
+export async function createReview({ product_id, user_id, star, description,name }, req) {
+  if ( !user_id || !star) {
+    throw new Error("User and Star rating are required");
   }
 
-  if (!mongoose.Types.ObjectId.isValid(product_id))
-    throw new Error("Invalid product ID");
+   const images = req.files?.["images"] || [];
 
   const review = await Review.create({
-    product_id,
+    product_id: product_id || null,
     user_id,
+    name,
     star,
+    images: images.map((img) => img.filename),
     description,
   });
+
+  // Attach URLs
+  review.images = review.images.map(
+    (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+  );  
 
   return review;
 }
 
 // Get Review by ID
-export async function getReview(reviewId) {
+export async function getReview(reviewId, req) {
   if (!mongoose.Types.ObjectId.isValid(reviewId)) {
     throw new Error("Invalid review ID");
   }
   const review = await Review.findById(reviewId).populate("product_id", "name");
+
+  review.images = review.images.map(
+    (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+  );
+
   if (!review) throw new Error("Review not found");
   return review;
 }
 
 // Update Review
-export async function updateReview(reviewId, { star, description }) {
+export async function updateReview(reviewId, { star, description, name }, req) {
   if (!mongoose.Types.ObjectId.isValid(reviewId))
     throw new Error("Invalid review ID");
 
@@ -41,9 +52,14 @@ export async function updateReview(reviewId, { star, description }) {
 
   if (star) review.star = star;
   if (description) review.description = description;
+  if (name) review.name = name;
 
-  await review.save();
-  return review;
+  const updatedReview = await review.save();
+  updatedReview.images = updatedReview.images.map(
+    (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+  );
+
+  return updatedReview;
 }
 
 // Delete Review
@@ -59,16 +75,23 @@ export async function deleteReview(reviewId) {
 }
 
 // Get Reviews for a Product
-export async function getProductReviews(productId) {
+export async function getProductReviews(productId,req) {
   if (!mongoose.Types.ObjectId.isValid(productId))
     throw new Error("Invalid product ID");
 
   const reviews = await Review.find({ product_id: productId }).populate("user_id", "name email"); // adjust fields as per your User model
+
+  reviews.forEach((review) => {
+    review.images = review.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    );
+  });
+
   return reviews;
 }
 
 // Get Reviews by a User (with limited product info)
-export async function getUserReviews(userId) {
+export async function getUserReviews(userId, req) {
   if (!mongoose.Types.ObjectId.isValid(userId))
     throw new Error("Invalid user ID");
 
@@ -83,7 +106,11 @@ export async function getUserReviews(userId) {
     _id: rev._id,
     star: rev.star,
     description: rev.description,
+    name: rev.name,
     date: rev.date,
+    images: rev.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    ),
     product: rev.product_id
       ? {
           name: rev.product_id.name,
@@ -97,7 +124,7 @@ export async function getUserReviews(userId) {
   return result;
 }
 
-export async function getGlobalReviewSummary() {
+export async function getGlobalReviewSummary(req) {
   //  Total Reviews & Average Rating
   const totalReviews = await Review.countDocuments();
   const ratingAggregation = await Review.aggregate([
@@ -131,6 +158,10 @@ export async function getGlobalReviewSummary() {
     _id: r._id,
     star: r.star,
     description: r.description,
+    images: r.images.map(
+      (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
+    ),
+    name: r.name,
     date: r.date,
     user: { name: r.user_id?.name || "Unknown User" },
     product: {

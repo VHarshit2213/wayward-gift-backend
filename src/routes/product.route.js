@@ -32,4 +32,7 @@ router.delete(
   asyncHandler(productController.deleteProduct)
 );
 
+router.post("/custom", asyncHandler(productController.createUserCustomProduct));
+
+
 export default router;
