@@ -44,7 +44,7 @@ export async function getCart(userId, req) {
   const cart = await Cart.findOne({ user_id: userId })
     .populate({
       path: "products.product_id",
-      select: "name price sku images category size",
+      select: "name price discount_price sku images category size",
       populate: {
         path: "category",
         select: "name"
@@ -69,6 +69,7 @@ export async function getCart(userId, req) {
             _id: prod._id,
             name: prod.name,
             price: prod.price,
+            discount_price: prod.discount_price,
             sku: prod.sku,
             category: prod.category?.name,
             size: prod.size,
