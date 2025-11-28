@@ -20,7 +20,7 @@ import User from "../models/User.js";
   }
 
   // Place Order
- export async function placeOrder(userId, body) {
+export async function placeOrder(userId, body) {
   const user = await User.findById(userId).lean();
   const cart_data = await Cart.findOne({ user_id: userId }).lean();
 
@@ -44,14 +44,25 @@ import User from "../models/User.js";
         throw new Error(`Insufficient stock for product: ${product.name}`);
       }
 
+      const price = Number(product.discount_price ?? product.price ?? 0);
+      const quantity = Number(item.quantity ?? 0);
+
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(`Invalid price for product: ${product.name || product._id}`);
+      }
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        throw new Error(`Invalid quantity for product: ${product.name || product._id}`);
+      }
+
       // Deduct stock
-      product.stock_quantity -= item.quantity;
+      product.stock_quantity -= quantity;
       await product.save();
 
       return {
         product_id: product._id,
-        quantity: item.quantity,
-        price: product.discount_price || product.price || 0,
+        quantity,
+        price,
       };
     })
   );
@@ -60,6 +71,10 @@ import User from "../models/User.js";
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  if (!Number.isFinite(totalAmount)) {
+    throw new Error("Calculated order total is invalid");
+  }
 
   const newOrder = new Order({
     order_id: orderId,
@@ -207,5 +222,3 @@ import User from "../models/User.js";
   export async function deleteOrder(orderId) {
     return await Order.findByIdAndDelete(orderId);
   }
-
-
