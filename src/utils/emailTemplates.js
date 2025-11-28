@@ -1,59 +1,73 @@
 export function registrationEmailTemplate(name) {
   return `
   <!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="UTF-8" />
-      <title>Welcome to Wayward Gifts & Crafts</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; margin:0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin: auto; background:#ffffff; border-radius: 10px; overflow:hidden; box-shadow:0px 4px 8px rgba(0,0,0,0.05);">
-        
-        <!-- Header -->
-        <tr>
-          <td style="background:#8A2BE2; padding:20px; text-align:center; color:white; font-size:24px; font-weight:bold;">
-            Wayward Gifts & Crafts
-          </td>
-        </tr>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Welcome to Wayward Gifts & Crafts</title>
+  </head>
 
-        <!-- Body -->
-        <tr>
-          <td style="padding:30px; color:#333;">
-            <h2 style="margin-top:0;">Welcome, ${name || "Valued Customer"}!</h2>
-            <p>
-              Thank you for signing up at <strong>Wayward Gifts & Crafts</strong> – your go-to destination for unique, handmade, and heartfelt gifts.
-            </p>
-            <p>
-              We’re excited to have you on board! As a registered member, you can now:
-              <ul style="padding-left: 20px; margin-top:10px;">
-                <li>Browse and shop handcrafted items from talented artisans</li>
-                <li>Create wishlists and save your favorite products</li>
-                <li>Track your orders and manage your account easily</li>
-                <li>Receive exclusive offers and promotions</li>
-              </ul>
-            </p>
-            <p>
-              Whether you’re shopping for yourself or looking for the perfect gift, we’re here to help you find something truly special.
-            </p>
-            <p>
-              If you ever need assistance, our support team is just a click away.
-            </p>
-            <p style="margin-top: 30px;">
-              Happy shopping! 🎁<br/>
-              The Wayward Gifts & Crafts Team
-            </p>
-          </td>
-        </tr>
+  <body style="font-family: Arial, sans-serif; background-color:#f8f2ea; padding: 20px; margin: 0;">
+    <table width="100%" cellpadding="0" cellspacing="0"
+      style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; overflow:hidden; 
+      box-shadow:0px 4px 10px rgba(0,0,0,0.08);">
 
-        <!-- Footer -->
-        <tr>
-          <td style="background:#f4f4f4; padding:15px; text-align:center; font-size:12px; color:#666;">
-            © ${new Date().getFullYear()} Wayward Gifts & Crafts. All rights reserved.<br/>
-            This is an automated email – please do not reply directly.
-          </td>
-        </tr>
-      </table>
-    </body>
-  </html>
+      <!-- Header -->
+      <tr>
+        <td style="background:#f3e5d0; padding:25px; text-align:center;">
+          <img src="http://18.234.1.203:3001/assets/new-BxK6u4yD.png" 
+               alt="Wayward Gifts & Crafts" 
+               style="width:160px; height:auto;">
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td style="padding:30px; color:#4a3f35; font-size:15px; line-height:1.6;">
+          
+          <h2 style="margin-top:0; color:#3c2f27; font-size:22px;">
+            Welcome, ${name || "Valued Customer"}!
+          </h2>
+
+          <p>
+            Thank you for signing up with <strong>Wayward Gifts & Crafts</strong> — your destination for thoughtfully curated and beautifully themed gift baskets.
+          </p>
+
+          <p>
+            We’re delighted to have you with us! As a registered member, you can now:
+          </p>
+
+          <ul style="padding-left:20px; margin:0;">
+            <li>Browse our unique, handcrafted gift collections</li>
+            <li>Create wishlists and save your favorite items</li>
+            <li>Track orders and manage your account with ease</li>
+            <li>Receive exclusive offers, seasonal themes, and member-only updates</li>
+          </ul>
+
+          <p style="margin-top:15px;">
+            Whether youre shopping for a loved one or treating yourself, we’re here to help you find the perfect gift for every occasion.
+          </p>
+
+          <p>If you ever need assistance, our support team is always ready to help.</p>
+
+          <p style="margin-top:30px;">
+            Warm regards, 🎁<br />
+            <strong>The Wayward Gifts & Crafts Team</strong>
+          </p>
+
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="background:#f8f2ea; padding:15px; text-align:center; font-size:12px; color:#7a6e63;">
+          © ${new Date().getFullYear()} Wayward Gifts & Crafts. All rights reserved.<br />
+          This is an automated email — please do not reply directly.
+        </td>
+      </tr>
+
+    </table>
+  </body>
+</html>
   `;
 }
