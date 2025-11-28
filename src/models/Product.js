@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
   {
-   name: { type: String, required: true, maxlength: 255 },
+    name: { type: String, required: false, maxlength: 255 },
     description: { type: String },
-    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: false },
     price: { type: Number, required: true },
     discount_price: { type: Number, default: 0 },
     sku: { type: String, unique: true, required: true },
@@ -15,7 +15,26 @@ const ProductSchema = new mongoose.Schema(
     dimensions: { type: String }, // e.g. "10x15 cm"
     color: { type: String },
     material: { type: String },
-    images: [{ type: String, required: true }],
+    size: { type: [String] },
+    includes : { type: [String] },
+    images: [{ type: String, required: false }],
+
+     // NEW FIELDS
+    isCustom: { type: Boolean, default: false },
+  
+    // USER SELECTED CUSTOMIZATION OPTIONS
+    customSelection: {
+      theme: { type: mongoose.Schema.Types.ObjectId, ref: "CustomOption" },
+      size: { type: mongoose.Schema.Types.ObjectId, ref: "CustomOption" },
+      coffee_roast: { type: mongoose.Schema.Types.ObjectId, ref: "CustomOption" },
+      addons: [{ type: mongoose.Schema.Types.ObjectId, ref: "CustomOption" }]
+    },
+
+    // FINAL PRICE AFTER ADDING CUSTOM COMPONENTS
+    finalPrice: { type: Number, default: 0 },
+
+    // USER MESSAGE FOR THE GIFT
+    message: { type: String }
   },
   { timestamps: true, versionKey: false }
 );

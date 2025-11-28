@@ -38,11 +38,11 @@ export async function register({ name, email, mobile, password }) {
 
   const token = signToken(user);
 
-  // await sendMail({
-  //         to: user.email,
-  //         subject: "Welcome to Wayward Gifts & Crafts 🎉",
-  //         html: registrationEmailTemplate(user.name || "User"),
-  //       });
+  await sendMail({
+          to: user.email,
+          subject: "Welcome to Wayward Gifts & Crafts 🎉",
+          html: registrationEmailTemplate(user.name || "User"),
+        });
 
   return {
     token,

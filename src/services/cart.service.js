@@ -42,36 +42,49 @@ if (quantity <= 0) throw new Error("Quantity must be at least 1");
 // ➤ Get cart
 export async function getCart(userId, req) {
   const cart = await Cart.findOne({ user_id: userId })
-    .populate("products.product_id", "name price sku images category")
-    .populate("products.product_id.category", "name");
+    .populate({
+      path: "products.product_id",
+      select: "name price sku images category size",
+      populate: {
+        path: "category",
+        select: "name"
+      }
+    })
+    .lean(); // <-- IMPORTANT
 
   if (!cart) return { products: [] };
 
-  // Add image URL for each product
+  // Transform products
   cart.products = cart.products.map((p) => {
-    const prod = p.product_id.toObject();
-    if (prod.images && prod.images.length > 0) {
-      prod.images = prod.images.map(
-        (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
-      );
-    }
+    const prod = p.product_id;
+
     return {
-      product: {
-        _id: prod._id,
-        name: prod.name,
-        price: prod.price,
-        sku: prod.sku,
-        category: prod.category?.name,
-        images: prod.images?.length > 0 ? [prod.images[0]] : [],
-      },
+      product_id: prod?._id,              // <-- Restored!
       quantity: p.quantity,
       is_active: p.is_active,
       added_at: p.added_at,
+
+      product: prod
+        ? {
+            _id: prod._id,
+            name: prod.name,
+            price: prod.price,
+            sku: prod.sku,
+            category: prod.category?.name,
+            size: prod.size,
+            images:
+              prod.images?.length > 0
+                ? [`${req.protocol}://${req.get("host")}/uploads/${prod.images[0]}`]
+                : [],
+          }
+        : null,
     };
   });
 
   return cart;
 }
+
+
 
 // ➤ Update product quantity in cart
 export async function updateCart(userId, { product_id, quantity }) {
