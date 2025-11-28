@@ -98,6 +98,8 @@ export async function placeOrder(userId, body) {
     0
   );
 
+  console.log("[order] totalAmount computed", totalAmount);
+
   if (!Number.isFinite(totalAmount)) {
     const debugItems = enrichedProducts.map((p) => ({
       product: p.product_id?.toString?.() || "unknown",
@@ -105,8 +107,8 @@ export async function placeOrder(userId, body) {
       quantity: p.quantity,
       subtotal: p.price * p.quantity,
     }));
-    console.error("[order] invalid totalAmount", { debugItems });
-    throw new Error(`Calculated order total is invalid: ${JSON.stringify(debugItems)}`);
+    console.error("[order] invalid totalAmount", { totalAmount, debugItems });
+    throw new Error(`Calculated order total is invalid: ${JSON.stringify({ totalAmount, debugItems })}`);
   }
 
   const newOrder = new Order({
