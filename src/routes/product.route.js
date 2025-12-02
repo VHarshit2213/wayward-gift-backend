@@ -34,5 +34,8 @@ router.delete(
 
 router.post("/custom", asyncHandler(productController.createUserCustomProduct));
 
+router.post("/wishlist/add/:productId", asyncHandler(productController.addWishlist));
+router.delete("/wishlist/remove/:productId", asyncHandler(productController.removeWishlist));
+
 
 export default router;

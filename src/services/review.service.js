@@ -1,6 +1,7 @@
 // services/review.service.js
-import Review from "../models/Review.js";
 import mongoose from "mongoose";
+import Review from "../models/Review.js";
+import Order from "../models/Order.js"; // adjust path/name if different
 
 // Create Review
 export async function createReview({ product_id, user_id, star, description,name }, req) {
@@ -10,6 +11,15 @@ export async function createReview({ product_id, user_id, star, description,name
 
    const images = req.files?.["images"] || [];
 
+  // Check if user actually purchased the product — adapt 'items.product' and statuses to your Order schema
+  const purchased = await Order.findOne({
+    user_id: user_id,
+    "items.product": product_id,
+    status: { $in: ["Delivered", "Completed"] } // adjust statuses if needed
+  }).lean();
+
+  const isVerified = !!purchased;
+
   const review = await Review.create({
     product_id: product_id || null,
     user_id,
@@ -17,6 +27,7 @@ export async function createReview({ product_id, user_id, star, description,name
     star,
     images: images.map((img) => img.filename),
     description,
+    isVerified
   });
 
   // Attach URLs
@@ -175,4 +186,32 @@ export async function getGlobalReviewSummary(req) {
     averageRating,
     latestReviews: formattedReviews
   };
+}
+
+// Get reviews with optional pagination/filtering (returns isVerified field)
+export async function getReviews({ product_id, page = 1, limit = 10, sort = "-date" } = {}) {
+  page = Math.max(parseInt(page, 10) || 1, 1);
+  limit = Math.max(parseInt(limit, 10) || 10, 1);
+
+  const filter = {};
+  if (product_id && mongoose.Types.ObjectId.isValid(product_id)) filter.product_id = product_id;
+
+  const total = await Review.countDocuments(filter);
+  const totalPages = Math.max(Math.ceil(total / limit), 1);
+
+  const reviews = await Review.find(filter)
+    .sort(sort)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean(); // isVerified will be present
+
+  return { reviews, total, page, limit, totalPages };
+}
+
+// Get single review by id (returns isVerified)
+export async function getReviewById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw Object.assign(new Error("Invalid id"), { status: 400 });
+  const r = await Review.findById(id).lean();
+  if (!r) throw Object.assign(new Error("Review not found"), { status: 404 });
+  return r;
 }

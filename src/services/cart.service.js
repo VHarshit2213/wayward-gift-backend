@@ -4,7 +4,7 @@ import Product from "../models/Product.js";
 import mongoose from "mongoose";
 
 // ➤ Add to cart
-export async function addToCart(userId, { product_id, quantity }) {
+export async function addToCart(userId, { product_id, quantity, coffee_bean_type }) {
   if (!mongoose.Types.ObjectId.isValid(product_id))
     throw new Error("Invalid product id");
 
@@ -22,7 +22,7 @@ if (quantity <= 0) throw new Error("Quantity must be at least 1");
     // Create new cart
     cart = await Cart.create({
       user_id: userId,
-      products: [{ product_id, quantity }],
+      products: [{ product_id, quantity, coffee_bean_type: coffee_bean_type || undefined }],
     });
   } else {
     // Update existing cart
@@ -30,7 +30,7 @@ if (quantity <= 0) throw new Error("Quantity must be at least 1");
     if (productIndex > -1) {
       cart.products[productIndex].quantity += quantity;
     } else {
-      cart.products.push({ product_id, quantity });
+      cart.products.push({ product_id, quantity, coffee_bean_type: coffee_bean_type || undefined });
     }
     cart.updated_at = new Date();
     await cart.save();
@@ -63,7 +63,7 @@ export async function getCart(userId, req) {
       quantity: p.quantity,
       is_active: p.is_active,
       added_at: p.added_at,
-
+      coffee_bean_type: p.coffee_bean_type,
       product: prod
         ? {
             _id: prod._id,

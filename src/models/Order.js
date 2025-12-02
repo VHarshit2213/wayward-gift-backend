@@ -11,6 +11,7 @@ const OrderSchema = new mongoose.Schema({
       product_id: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       quantity: { type: Number, required: true },
       price: { type: Number, required: true },
+      coffee_bean_type: { type: String, enum: ['Arabica', 'Robusta', 'Liberica' ], required: false }
     }
   ],
 
@@ -24,6 +25,7 @@ const OrderSchema = new mongoose.Schema({
   o_date: { type: Date, default: Date.now },
   contact_information: { type: Array },
   shipping_address: { type: Array },
+  billing_address: { type: Array },
 }, { versionKey: false });
 
 const Order = mongoose.model("Orders", OrderSchema);

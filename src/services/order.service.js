@@ -89,6 +89,7 @@ export async function placeOrder(userId, body) {
         product_id: product._id,
         quantity,
         price,
+        coffee_bean_type: item.coffee_bean_type || undefined
       };
     })
   );
@@ -133,6 +134,7 @@ export async function placeOrder(userId, body) {
     total_amount: totalAmount,
     discount_amount: body.discount_amount || 0,
     shipping_address: body.shipping_address || [],
+    billing_address: body.billing_address || [],
     contact_information: body.contact_information || [],
     payment_method: body.payment_method || "COD",
   });

@@ -4,6 +4,8 @@ import Category from "../models/Category.js";
 import User from "../models/User.js";
 import Review from "../models/Review.js";
 import mongoose from "mongoose";
+import UserWishlist from "../models/UserWhishlish.js";
+import { th } from "zod/locales";
 
 
 export async function createProduct(
@@ -166,7 +168,7 @@ export async function deleteProduct(productId, userId) {
 
 
 // services/product.service.js
-export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock }, req) {
+export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist  }, req) {
   const filter = {};
   filter.isCustom = { $ne: true };
   // FILTER BY MULTIPLE OR SINGLE CATEGORY
@@ -185,6 +187,30 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
     filter.stock_quantity = 0;
   }
   // If inStock is undefined → no filter applied
+
+   let wishlistProductIds = [];
+  if (inWishlist === "true" || inWishlist === "false") {
+    try {
+      const userId = req.user._id;
+
+      const wishlist = await UserWishlist.findOne({ user_id: userId })
+        .select("products")
+        .lean();
+
+      wishlistProductIds = wishlist?.products?.map(id => id.toString()) || [];
+
+      // ⬇ Apply wishlist filter ONLY if frontend sends inWishlist filter
+      if (inWishlist === "true") {
+        filter._id = { $in: wishlistProductIds };
+      } else if (inWishlist === "false") {
+        filter._id = { $nin: wishlistProductIds };
+      }
+
+    } catch (err) {
+      console.log("Error while fetching wishlist:", err.message);
+      throw new Error("Error while fetching wishlist filter ");
+    }
+  }
 
   const skip = (page - 1) * limit;
 
@@ -258,3 +284,39 @@ export const createUserCustomProduct = async (data) => {
     customSelection: data.selectedOptions
   });
 };
+
+
+export const addWishlist = async (userId, productId) => {
+    let wishlist = await UserWishlist.findOne({ user_id: userId });
+
+    if (!wishlist) {
+      wishlist = await UserWishlist.create({
+        user_id: userId,
+        products: [productId]
+      });
+    } else {
+      if (!wishlist.products.includes(productId)) {
+        wishlist.products.push(productId);
+      }
+    }
+
+    await wishlist.save();
+    return wishlist;
+}
+
+
+export const removeWishlist = async (userId, productId) => {
+
+   const wishlist = await UserWishlist.findOne({ user_id: userId });
+
+    if (!wishlist) {
+      return { message: "Product removed", inWishlist: false };
+    }
+
+    wishlist.products = wishlist.products.filter(
+      p => p.toString() !== productId
+    );
+
+    await wishlist.save();
+    return wishlist;
+}
