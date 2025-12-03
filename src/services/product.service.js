@@ -278,6 +278,7 @@ export const createUserCustomProduct = async (data) => {
     name: "Customized Basket",
     message: data.message || "",
     discount_price: data.finalPrice,
+    price: data.finalPrice,
     sku: "CUST-" + Date.now(),
     stock_quantity: 1,
     isCustom: true,

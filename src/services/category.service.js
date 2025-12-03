@@ -98,7 +98,7 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-export async function deleteCategory(categoryId) {
+export async function deleteCategory(req, categoryId) {
   if (!mongoose.Types.ObjectId.isValid(categoryId))
     throw new Error("Provide valid category id");
 

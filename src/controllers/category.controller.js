@@ -31,8 +31,9 @@ export const updateCategory = async (req, res) => {
 
 export const deleteCategory = async (req, res) => {
   try {
+    console.log("Delete Category Request Params:", req.params); // Debugging line
     const { categoryId } = req.params;
-    const result = await categoryService.deleteCategory(categoryId);
+    const result = await categoryService.deleteCategory(req,categoryId);
       return ApiResponse.ok(res, { deleted: true }, "Category deleted successfully");
   } catch (err) {
     return ApiResponse.error(res, err.message, err.status || 500);
