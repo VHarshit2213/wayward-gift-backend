@@ -248,6 +248,7 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
   // Attach stats + image URLs
   const responseProducts = products.map((p) => {
     const prod = p.toObject();
+    const productIdStr = p._id.toString();
     if (prod.images && prod.images.length > 0) {
       prod.images = prod.images.map(
         (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
@@ -257,6 +258,7 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
       ...prod,
       totalReviews: statsMap[p._id.toString()]?.totalReviews || 0,
       averageStar: statsMap[p._id.toString()]?.averageStar || "0.0",
+      wishlist: wishlistProductIds.includes(productIdStr)
     };
   });
 
