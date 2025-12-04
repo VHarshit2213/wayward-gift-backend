@@ -168,9 +168,10 @@ export async function deleteProduct(productId, userId) {
 
 
 // services/product.service.js
-export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist  }, req) {
+export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist }, req) {
   const filter = {};
   filter.isCustom = { $ne: true };
+
   // FILTER BY MULTIPLE OR SINGLE CATEGORY
   if (categoryId) {
     const categories = Array.isArray(categoryId) ? categoryId : categoryId.split(",");
@@ -186,20 +187,22 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
   } else if (inStock === "false") {
     filter.stock_quantity = 0;
   }
-  // If inStock is undefined → no filter applied
 
-   let wishlistProductIds = [];
-  if (inWishlist === "true" || inWishlist === "false") {
+  // ----------------------------
+  // ALWAYS LOAD wishlist if user logged in
+  // ----------------------------
+  let wishlistProductIds = [];
+
+  if (req.user?._id) {
     try {
       const userId = req.user._id;
-
       const wishlist = await UserWishlist.findOne({ user_id: userId })
         .select("products")
         .lean();
 
       wishlistProductIds = wishlist?.products?.map(id => id.toString()) || [];
 
-      // ⬇ Apply wishlist filter ONLY if frontend sends inWishlist filter
+      // Apply wishlist filter ONLY if frontend sent inWishlist
       if (inWishlist === "true") {
         filter._id = { $in: wishlistProductIds };
       } else if (inWishlist === "false") {
@@ -208,10 +211,11 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
 
     } catch (err) {
       console.log("Error while fetching wishlist:", err.message);
-      throw new Error("Error while fetching wishlist filter ");
+      throw new Error("Error while fetching wishlist filter");
     }
   }
 
+  // Pagination
   const skip = (page - 1) * limit;
 
   // Count total products
@@ -223,7 +227,7 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
     .skip(skip)
     .limit(Number(limit));
 
-  const productIds = products.map((p) => p._id);
+  const productIds = products.map(p => p._id);
 
   // Aggregate reviews
   const reviewStats = await Review.aggregate([
@@ -232,33 +236,33 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
       $group: {
         _id: "$product_id",
         totalReviews: { $sum: 1 },
-        averageStar: { $avg: "$star" }
+        averageStar: { $avg: "$star" },
       }
     }
   ]);
 
   const statsMap = {};
-  reviewStats.forEach((stat) => {
+  reviewStats.forEach(stat => {
     statsMap[stat._id.toString()] = {
       totalReviews: stat.totalReviews,
       averageStar: stat.averageStar.toFixed(1),
     };
   });
 
-  // Attach stats + image URLs
-  const responseProducts = products.map((p) => {
+  // Attach stats + image URLs + wishlist flag
+  const responseProducts = products.map(p => {
     const prod = p.toObject();
     const productIdStr = p._id.toString();
-    if (prod.images && prod.images.length > 0) {
-      prod.images = prod.images.map(
-        (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
-      );
+
+    if (prod.images?.length > 0) {
+      prod.images = prod.images.map(img => `${req.protocol}://${req.get("host")}/uploads/${img}`);
     }
+
     return {
       ...prod,
-      totalReviews: statsMap[p._id.toString()]?.totalReviews || 0,
-      averageStar: statsMap[p._id.toString()]?.averageStar || "0.0",
-      wishlist: wishlistProductIds.includes(productIdStr)
+      totalReviews: statsMap[productIdStr]?.totalReviews || 0,
+      averageStar: statsMap[productIdStr]?.averageStar || "0.0",
+      wishlist: wishlistProductIds.includes(productIdStr) // Always correct now
     };
   });
 
@@ -272,6 +276,7 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
     },
   };
 }
+
 
 
 export const createUserCustomProduct = async (data) => {
