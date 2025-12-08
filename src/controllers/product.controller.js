@@ -46,8 +46,8 @@ export const deleteProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { categoryId, search, page, limit,inStock, inWishlist } = req.query;
-    const result = await productService.getAllProducts({ categoryId, search, page, limit, inStock, inWishlist }, req);
+    const { categoryId, search, page, limit, inStock, inWishlist, sortBy, order } = req.query;
+    const result = await productService.getAllProducts({ categoryId, search, page, limit, inStock, inWishlist, sortBy, order }, req);
     return ApiResponse.ok(res, result, "Products fetched successfully");
   } catch (err) {
     return ApiResponse.error(res, err.message, err.status || 500);

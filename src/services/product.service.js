@@ -9,7 +9,7 @@ import { th } from "zod/locales";
 
 
 export async function createProduct(
-  { name, description, price, size, discount_price, includes, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
+  { name, description,long_description, price, size, discount_price, includes, categoryId, sku, stock_quantity, status, weight, dimensions, color, material },
   files,
   req
 ) {
@@ -35,6 +35,7 @@ export async function createProduct(
   const product = await Product.create({
     name,
     description,
+    long_description,
     price,
     discount_price,
     category: categoryId,
@@ -118,6 +119,7 @@ export async function updateProduct(productId, updates, files, req) {
   const fields = [
     "name",
     "description",
+    "long_description",
     "price",
     "discount_price",
     "sku",
@@ -168,7 +170,7 @@ export async function deleteProduct(productId, userId) {
 
 
 // services/product.service.js
-export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist }, req) {
+export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist, sortBy, order }, req) {
   const filter = {};
   filter.isCustom = { $ne: true };
 
@@ -215,6 +217,16 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
     }
   }
 
+  // Sorting
+  const validSortBy = ['name', 'price', 'discount_price'];
+  const validOrder = ['asc', 'desc'];
+
+  const sortByValidated = validSortBy.includes(sortBy) ? sortBy : 'name';
+  const orderValidated = validOrder.includes(order) ? order : 'asc';
+
+  const sortOptions = {};
+  sortOptions[sortByValidated] = orderValidated === 'asc' ? 1 : -1;
+
   // Pagination
   const skip = (page - 1) * limit;
 
@@ -224,6 +236,7 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
   // Fetch products
   const products = await Product.find(filter)
     .populate("category", "name")
+    .sort(sortOptions)
     .skip(skip)
     .limit(Number(limit));
 
