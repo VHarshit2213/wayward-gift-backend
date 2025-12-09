@@ -7,8 +7,7 @@ const router = Router();
 router.post('/signup', validate(authCtrl.registerSchema), asyncHandler(authCtrl.register));
 router.post('/signin', validate(authCtrl.loginSchema),    asyncHandler(authCtrl.login));
 router.post("/google-login", asyncHandler(authCtrl.googleAuth));
-// router.post('/reset', asyncHandler(authCtrl.resetPassword))
-// router.post("/forgot-password", asyncHandler(authCtrl.forgotPassword));
-// router.post("/reset-password", asyncHandler(authCtrl.resetPassword));
+router.post("/forgot-password", asyncHandler(authCtrl.forgotPassword));
+router.post("/reset-password", asyncHandler(authCtrl.resetPassword));
 
 export default router;

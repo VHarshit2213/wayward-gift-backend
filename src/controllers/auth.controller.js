@@ -52,6 +52,27 @@ export const googleAuth = async (req, res) => {
   }
 };
 
+export const forgotPassword = async (req, res) => {
+  try {
+    const result = await authService.forgotPassword(req.body);
+    return ApiResponse.ok(res, result);
+  } catch (err) {
+    console.error("Error in forgotPassword controller:", err);
+    return ApiResponse.error(res, err.message || "Failed to send reset link");
+  }
+};
+
+// Reset password
+export const resetPassword = async (req, res) => {
+  try {
+    const result = await authService.resetPassword(req.body);
+    return ApiResponse.ok(res, result);
+  } catch (err) {
+    console.error("Error in resetPassword controller:", err);
+    return ApiResponse.error(res, err.message || "Failed to reset password");
+  }
+};
+
 //  Exporting all controllers and schemas
 export default {
   register,

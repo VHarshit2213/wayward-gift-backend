@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import { sendMail } from "../utils/mailer.js";
-import { registrationEmailTemplate } from "../utils/emailTemplates.js";
+import { registrationEmailTemplate, forgotPasswordEmailTemplate } from "../utils/emailTemplates.js";
 import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -152,4 +152,101 @@ export async function googleLogin(idToken) {
       mobile: user.mobile,
     },
   };
+}
+
+export async function forgotPassword({ email }) {
+  if (!email) {
+    const err = new Error("Email is required");
+    err.status = 400;
+    throw err;
+  }
+
+  // 1. Find user
+  const user = await User.findOne({ email }).select(
+    "name email role password isActive isDeleted mobile googleId"
+  );
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if(user.googleId) {
+    const err = new Error("This account uses Google Sign-In. Password reset is not applicable.");
+    err.status = 400;
+    throw err;
+  }
+
+  // 2. Generate token
+  const token = jwt.sign(
+    { userId: user.id, email: user.email },
+    process.env.JWT_SECRET || "super_secret_key",
+    { expiresIn: "1h" }
+  );
+
+  const resetLink = `http://18.234.1.203:3001/reset-password?token=${token}`;
+  console.log("Password reset link:", resetLink);
+  //   // 3. Send email
+  console.log("Sending password reset email to:", user.email);
+  const result = await sendMail({
+    to: user.email,
+    subject: "Reset your Skalpel password",
+    html: forgotPasswordEmailTemplate(user.fullName, resetLink),
+  });
+
+  return { message: "Password reset link sent to your email" };
+}
+
+// Reset password
+export async function resetPassword({ token, newPassword }) {
+  if (!token) {
+    const err = new Error("Token is required");
+    err.status = 400;
+    throw err;
+  }
+
+  if (!newPassword) {
+    const err = new Error("Password is required");
+    err.status = 400;
+    throw err;
+  }
+
+  // 1. Verify token
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET || "super_secret_key");
+  } catch (err) {
+    const error = new Error("Invalid or expired token");
+    error.status = 400;
+    throw error;
+  }
+
+  // 2. Find user
+  const user = await User.findById(decoded.userId);
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  // 3. Check same password
+  const isSame = await bcrypt.compare(newPassword, user.password);
+  if (isSame) {
+    const err = new Error("New password cannot be same as old");
+    err.status = 400;
+    throw err;
+  }
+
+  // 4. Hash & save
+  const hashedPassword = await bcrypt.hash(
+    newPassword,
+    Number(process.env.BCRYPT_SALT_ROUNDS) || 10
+  );
+
+
+  // 6. Save updated password
+  user.password = hashedPassword;
+  await user.save();
+
+  return { message: "Password reset successful" };
 }
