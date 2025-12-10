@@ -51,6 +51,7 @@ export async function register({ name, email, mobile, password }) {
       name: user.name,
       email: user.email,
       mobile: user.mobile,
+      role: user.role
     },
   };
 }
@@ -95,6 +96,7 @@ export async function login({ email, password }) {
       name: user.name,
       email: user.email,
       mobile: user.mobile,
+      role: user.role
     },
   };
 }
@@ -150,6 +152,7 @@ export async function googleLogin(idToken) {
       name: user.name,
       email: user.email,
       mobile: user.mobile,
+      role: user.role
     },
   };
 }
