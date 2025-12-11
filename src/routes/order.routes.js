@@ -13,6 +13,8 @@ router.get("/", orderController.getAllOrders);
 
 router.get("/my-orders", orderController.getUserOrders);
 
+router.get("/recent", orderController.getRecentOrders);
+
 router.get("/:orderId", orderController.getOrderById);
 
 router.put("/status", orderController.updateOrderStatus);
@@ -20,5 +22,7 @@ router.put("/status", orderController.updateOrderStatus);
 router.put("/:orderId", orderController.editOrder);
 
 router.delete("/:orderId", orderController.deleteOrder);
+
+
 
 export default router;

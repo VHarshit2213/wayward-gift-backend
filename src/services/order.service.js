@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import { date } from "zod";
 
 
 // Generate next order ID (WAYWARD001…)
@@ -312,4 +313,20 @@ export async function deleteOrder(orderId, req) {
   if (!user) throw new Error("User not found");
   if (user.role !== "admin") throw new Error("Only admin can delete orders");
   return await Order.findByIdAndDelete(orderId);
+}
+
+
+// Get Recent Orders
+export async function getRecentOrders(req) {
+  const toDay = new Date();
+  const priorDate = new Date();
+  priorDate.setDate(toDay.getDate() - 10); // subtract 10 days properly
+
+  const recentOrders = await Order.find({
+    o_date: { $gte: priorDate, $lte: toDay }
+  })
+    .sort({ o_date: -1 })
+    .lean();
+
+  return recentOrders;
 }

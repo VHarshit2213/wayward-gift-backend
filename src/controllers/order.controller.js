@@ -77,3 +77,12 @@ export const deleteOrder = async (req, res) => {
     return ApiResponse.error(res, error.message);
   }
 };
+
+export const getRecentOrders = async (req, res) => {
+  try {
+    const data = await OrderService.getRecentOrders(req);
+    return ApiResponse.ok(res, "Recent orders fetched successfully", data);
+  } catch (error) {
+    return ApiResponse.error(res, error.message);
+  }
+};
