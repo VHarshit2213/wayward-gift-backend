@@ -203,10 +203,12 @@ export async function getAllOrders(page, limit, orderStatus, userId, req) {
   );
 
   const totalOrders = await Order.countDocuments(orderStatus ? { order_status: orderStatus } : {});
+  const deliveredCount = await Order.countDocuments({ order_status: "Delivered" });
   return {
     currentPage: page,
     totalPages: Math.ceil(totalOrders / limit),
     totalItems: totalOrders,
+    deliveredItems: deliveredCount,
     data: enrichedOrders
   };
 }
