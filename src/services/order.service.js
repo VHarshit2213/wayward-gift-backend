@@ -234,8 +234,12 @@ export async function getOrderById(req, orderId) {
 
 
 // Update status
-export async function updateOrderStatus(orderId, status) {
-  console.log("Updating order:", orderId, "to status:", status);
+export async function updateOrderStatus(orderId, status, req) {
+
+  const userId = req.user._id; // from JWT
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") throw new Error("Only admin can update order status");
   return await Order.findOneAndUpdate(
     { order_id: orderId },
     { $set: { order_status: status } },
@@ -302,6 +306,10 @@ export async function editOrder(orderId, updateData) {
 }
 
 // Delete Order
-export async function deleteOrder(orderId) {
+export async function deleteOrder(orderId, req) {
+  const userId = req.user._id; // from JWT
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+  if (user.role !== "admin") throw new Error("Only admin can delete orders");
   return await Order.findByIdAndDelete(orderId);
 }

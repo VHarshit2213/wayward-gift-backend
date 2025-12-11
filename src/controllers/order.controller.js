@@ -35,7 +35,7 @@ export const updateOrderStatus = async (req, res) => {
   try {
     if (!req.body.order_status) return ApiResponse.error(res, "order_status is required");
     console.log("request body:", req.body);
-    const updatedOrder = await OrderService.updateOrderStatus(req.body.id, req.body.order_status);
+    const updatedOrder = await OrderService.updateOrderStatus(req.body.id, req.body.order_status, req);
     if (!updatedOrder) return ApiResponse.error(res, "Order not found");
 
     return ApiResponse.ok(res, "Order status updated", updatedOrder);
@@ -69,7 +69,7 @@ export const editOrder = async (req, res) => {
 
 export const deleteOrder = async (req, res) => {
   try {
-    const deletedOrder = await OrderService.deleteOrder(req.params.id);
+    const deletedOrder = await OrderService.deleteOrder(req.params.orderId,req);
     if (!deletedOrder) return ApiResponse.error(res, "Order not found");
 
     return ApiResponse.ok(res, "Order deleted successfully");
