@@ -8,7 +8,7 @@ const CartSchema = new mongoose.Schema({
       quantity: { type: Number, default: 1 },
       is_active: { type: Boolean, default: true },
       added_at: { type: Date, default: Date.now },
-      coffee_bean_type: { type: String, enum: ['Arabica', 'Robusta', 'Liberica' ], required: false }
+      coffee_bean_type: { type: String, enum: ['Arabica','Robusta','Liberica'], required: false } // <- per-item
     }
   ],
   updated_at: { type: Date, default: Date.now }

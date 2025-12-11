@@ -2,8 +2,9 @@ import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Transaction from "../models/Transaction.js";
 import { date } from "zod";
-
+import { retrievePaymentIntent } from "./stripe.service.js";
 
 // Generate next order ID (WAYWARD001…)
 export async function generateOrderId() {
@@ -140,7 +141,66 @@ export async function placeOrder(userId, body) {
     payment_method: body.payment_method || "COD",
   });
 
+  // Build transaction record (safe, non-sensitive)
+  let txRecord = null;
+
+  // If client provided a Stripe PaymentIntent id, retrieve and use it
+  if (body.payment_intent_id) {
+    try {
+      const pi = await retrievePaymentIntent(body.payment_intent_id);
+      txRecord = {
+        order_id: null, // will attach after saving order
+        user_id: userId,
+        provider: "stripe",
+        provider_payment_id: pi.id,
+        status: pi.status,
+        amount: pi.amount_received || pi.amount,
+        currency: pi.currency,
+        payment_method_type: pi.payment_method_types && pi.payment_method_types[0],
+        card: (pi.charges?.data?.[0]?.payment_method_details?.card)
+          ? {
+            brand: pi.charges.data[0].payment_method_details.card.brand,
+            last4: pi.charges.data[0].payment_method_details.card.last4,
+            funding: pi.charges.data[0].payment_method_details.card.funding
+          }
+          : undefined,
+        meta: { stripe: { captured: !!pi.captured } }
+      };
+      // attach basic payment info to order.payment
+      newOrder.payment = {
+        provider: "stripe",
+        provider_payment_id: pi.id,
+        status: pi.status,
+        amount: txRecord.amount,
+        currency: pi.currency,
+        method: "card",
+        card: txRecord.card ? { brand: txRecord.card.brand, last4: txRecord.card.last4 } : undefined
+      };
+    } catch (err) {
+      // log but allow flow to create order depending on your policy; here we rethrow
+      throw new Error("Failed to retrieve PaymentIntent: " + (err.message || err));
+    }
+
+  } else {
+    // e.g., COD or other methods
+    newOrder.payment = {
+      provider: body.payment_provider || "none",
+      status: body.payment_status || "pending",
+      amount: totalAmount,
+      currency: body.currency || "usd",
+      method: body.payment_method || "COD"
+    };
+  }
+
   const savedOrder = await newOrder.save();
+
+  // create transaction record and link to order (if txRecord prepared)
+  if (txRecord) {
+    txRecord.order_id = savedOrder._id;
+    const createdTx = await Transaction.create(txRecord);
+    savedOrder.transaction = createdTx._id;
+    await savedOrder.save();
+  }
 
   // Clear the user's cart after successful order
   await Cart.findByIdAndDelete(cart_data._id);

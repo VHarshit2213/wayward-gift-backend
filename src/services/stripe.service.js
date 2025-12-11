@@ -39,3 +39,8 @@ export async function createPaymentIntentService({ amount, name, email, address 
     paymentIntentId: paymentIntent.id,
   };
 }
+
+export async function retrievePaymentIntent(paymentIntentId) {
+  if (!paymentIntentId) throw new Error("paymentIntentId required");
+  return stripe.paymentIntents.retrieve(paymentIntentId);
+}

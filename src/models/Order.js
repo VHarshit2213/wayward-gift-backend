@@ -26,7 +26,20 @@ const OrderSchema = new mongoose.Schema({
   contact_information: { type: Array },
   shipping_address: { type: Array },
   billing_address: { type: Array },
+  payment: {
+    provider: { type: String }, // e.g., "stripe"
+    provider_payment_id: { type: String }, // PaymentIntent id
+    status: { type: String }, // order payment status
+    amount: { type: Number },
+    currency: { type: String },
+    method: { type: String }, // e.g., "card", "cod"
+    card: {
+      brand: { type: String },
+      last4: { type: String }
+    }
+  },
+  transaction: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
 }, { versionKey: false });
 
-const Order = mongoose.model("Orders", OrderSchema);
+const Order = mongoose.model("Order", OrderSchema);
 export default Order;

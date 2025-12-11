@@ -8,6 +8,7 @@ import orderRoutes from './order.routes.js';
 import stripeRoutes from './stripe.routes.js';
 import userRoutes from './user.routes.js';
 import customOption from './customOption.route.js';
+import transaction from './transaction.routes.js';
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -19,6 +20,7 @@ router.use('/order', orderRoutes);
 router.use('/stripe', stripeRoutes);
 router.use('/user', userRoutes);
 router.use('/custom', customOption);
+router.use('/transaction', transaction);
 
 router.get('/health', (req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
