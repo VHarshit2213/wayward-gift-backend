@@ -138,16 +138,30 @@ export async function updateProduct(productId, updates, files, req) {
 
   // Replace images if new ones uploaded
   const images = files?.["images"];
+  // Accept replaceImages flag from updates (boolean or string 'true' when using form-data)
+  const replaceImages =
+    updates.replaceImages === true ||
+    updates.replaceImages === "true";
+
   if (images && images.length > 0) {
-    product.images = images.map((img) => img.filename);
+    const newFiles = images.map((img) => img.filename);
+    if (replaceImages) {
+      // full replace
+      product.images = newFiles;
+    } else {
+      // append (ensure existing is an array)
+      product.images = Array.isArray(product.images) ? product.images.concat(newFiles) : newFiles;
+      // optional: remove duplicates while preserving order
+      product.images = [...new Set(product.images)];
+    }
   }
-
+  
   await product.save();
-
+  
   product.images = product.images.map(
     (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
   );
-
+  
   return product;
 }
 
