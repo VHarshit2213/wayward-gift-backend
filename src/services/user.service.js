@@ -152,3 +152,27 @@ export async function getAllUsers(userId, req) {
 
   return { users, total, page, limit, totalPages, todayCount };
 }
+
+
+export async function deleteUser(targetUserId, req) {
+  const admin = await User.findById(req.user._id);
+  if (!admin) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+  if (admin.role !== "admin") {
+    const err = new Error("Only admin can delete users");
+    err.status = 403;
+    throw err;
+  }
+
+  const user = await User.findByIdAndDelete(targetUserId);
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  return user;
+}

@@ -36,3 +36,12 @@ export const getAllUsers = async (req, res) => {
     return ApiResponse.error(res, err.message, err.status || 500);
   }
 };
+
+export const deleteUser = async (req, res) => {
+  try {
+    const result = await userService.deleteUser(req.params.id, req);
+    return ApiResponse.ok(res, result, "User deleted successfully");
+  } catch (err) {
+    return ApiResponse.error(res, err.message, err.status || 500);
+  }
+};
