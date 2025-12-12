@@ -5,6 +5,11 @@ import authenticate from "../middlewares/authenticate.js";
 import upload from "../config/multer.js";
 
 const router = express.Router();
+
+router.get("/get", asyncHandler(categoryController.getCategory));
+
+router.get("/all", categoryController.getAllCategoryDetails);
+
 router.use(authenticate);
 
 router.post(
@@ -13,7 +18,7 @@ router.post(
   asyncHandler(categoryController.createCategory)
 );
 
-router.get("/get", asyncHandler(categoryController.getCategory));
+
 
 router.put(
   "/",
@@ -23,6 +28,6 @@ router.put(
 
 router.delete("/:categoryId", asyncHandler(categoryController.deleteCategory));
 
-router.get("/all", categoryController.getAllCategoryDetails);
+
 
 export default router;

@@ -6,6 +6,11 @@ import authenticate from "../middlewares/authenticate.js";
 import upload from "../config/multer.js";
 
 const router = express.Router();
+
+router.get("/all", asyncHandler(productController.getAllProducts));
+
+router.get("/get/:productId", asyncHandler(productController.getProducts));
+
 router.use(authenticate);
 
 router.post(
@@ -15,9 +20,9 @@ router.post(
 );
 
 // READ
-router.get("/get/:productId", asyncHandler(productController.getProducts));
 
-router.get("/all", asyncHandler(productController.getAllProducts));
+
+
 
 // UPDATE
 router.put(
