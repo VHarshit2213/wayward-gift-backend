@@ -6,6 +6,8 @@ import Review from "../models/Review.js";
 import mongoose from "mongoose";
 import UserWishlist from "../models/UserWhishlish.js";
 import { th } from "zod/locales";
+import fs from "fs";
+import path from "path";
 
 
 export async function createProduct(
@@ -138,22 +140,10 @@ export async function updateProduct(productId, updates, files, req) {
 
   // Replace images if new ones uploaded
   const images = files?.["images"];
-  // Accept replaceImages flag from updates (boolean or string 'true' when using form-data)
-  const replaceImages =
-    updates.replaceImages === true ||
-    updates.replaceImages === "true";
-
+  // If images are provided in the update, always replace the existing images (no append)
   if (images && images.length > 0) {
     const newFiles = images.map((img) => img.filename);
-    if (replaceImages) {
-      // full replace
-      product.images = newFiles;
-    } else {
-      // append (ensure existing is an array)
-      product.images = Array.isArray(product.images) ? product.images.concat(newFiles) : newFiles;
-      // optional: remove duplicates while preserving order
-      product.images = [...new Set(product.images)];
-    }
+    product.images = newFiles;
   }
   
   await product.save();
@@ -184,7 +174,7 @@ export async function deleteProduct(productId, userId) {
 
 
 // services/product.service.js
-export async function getAllProducts({ categoryId, search, page = 1, limit = 10, inStock, inWishlist, sortBy, order }, req) {
+export async function getAllProducts({ categoryId, search, page = 1, limit = 20, inStock, inWishlist, sortBy, order, userId }, req) {
   const filter = {};
   filter.isCustom = { $ne: true };
 
@@ -209,9 +199,8 @@ export async function getAllProducts({ categoryId, search, page = 1, limit = 10,
   // ----------------------------
   let wishlistProductIds = [];
 
-  if (req.user?._id) {
+  if (userId) {
     try {
-      const userId = req.user._id;
       const wishlist = await UserWishlist.findOne({ user_id: userId })
         .select("products")
         .lean();
