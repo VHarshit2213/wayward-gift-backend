@@ -27,6 +27,15 @@ export async function listTransactionsAdmin(req, res) {
   }
 
   const total = await Transaction.countDocuments(filter);
+
+  // compute total revenue (sum of amount across all matched transactions)
+  // amounts are stored in smallest currency unit (e.g., cents)
+  const agg = await Transaction.aggregate([
+    { $match: filter },
+    { $group: { _id: null, totalAmount: { $sum: "$amount" } } }
+  ]);
+  const totalRevenueCents = (agg[0] && agg[0].totalAmount) || 0;
+
   const transactions = await Transaction.find(filter)
     .sort({ created_at: -1 })
     .skip((page - 1) * limit)
@@ -39,6 +48,7 @@ export async function listTransactionsAdmin(req, res) {
     currentPage: page,
     totalPages: Math.ceil(total / limit),
     totalItems: total,
+    TotalRevenue: totalRevenueCents, 
     data: transactions
   });
 }
