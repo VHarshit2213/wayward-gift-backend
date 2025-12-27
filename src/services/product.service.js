@@ -138,20 +138,65 @@ export async function updateProduct(productId, updates, files, req) {
     if (updates[field] !== undefined) product[field] = updates[field];
   });
 
-  // Replace images if new ones uploaded
-  const images = files?.["images"];
-  // If images are provided in the update, always replace the existing images (no append)
-  if (images && images.length > 0) {
-    const newFiles = images.map((img) => img.filename);
-    product.images = newFiles;
+  // IMAGE HANDLING: accept mix of existing image paths (URLs or filenames) and new uploaded files
+  // Frontend should send updates.images as array (or single string) of existing image URLs or filenames
+  // New binary uploads come in files["images"]
+  const keptImagesInput = updates.images
+    ? (Array.isArray(updates.images) ? updates.images : [updates.images])
+    : [];
+
+  // Normalize kept images to filenames
+  const keptFilenames = [];
+  keptImagesInput.forEach((img) => {
+    if (!img) return;
+    try {
+      // If it's a full URL, extract pathname then basename
+      const url = new URL(img);
+      keptFilenames.push(path.basename(url.pathname));
+    } catch (e) {
+      // Not a URL -> treat as filename or path
+      keptFilenames.push(path.basename(img));
+    }
+  });
+
+  // New uploaded files
+  const newFiles = files?.["images"] ? files["images"].map((f) => f.filename) : [];
+
+  // Final image list: kept existing filenames + newly uploaded filenames
+  const finalImages = [...keptFilenames, ...newFiles];
+
+  // Remove any old image files that were NOT kept (cleanup server uploads)
+  const previousFilenames = Array.isArray(product.images) ? product.images : [];
+  const removed = previousFilenames.filter((f) => !finalImages.includes(f));
+  if (removed.length > 0) {
+    removed.forEach((filename) => {
+      try {
+        const filePath = path.join(process.cwd(), "uploads", filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        // Log and continue; do not block update on file deletion errors
+        console.warn("Failed to delete old image:", filename, err.message);
+      }
+    });
+  }
+
+  // Set product images to final filenames (DB stores filenames)
+  if (finalImages.length > 0) {
+    product.images = finalImages;
+  } else if (updates.images !== undefined && finalImages.length === 0) {
+    // If frontend explicitly sent an empty images array -> clear images
+    product.images = [];
   }
   
   await product.save();
-  
+
+  // Attach URLs for response
   product.images = product.images.map(
     (img) => `${req.protocol}://${req.get("host")}/uploads/${img}`
   );
-  
+
   return product;
 }
 
